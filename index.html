@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown & Audio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            letter-spacing: -0.02em;
+        }
+
+        /* Countdown Container */
+        .countdown-container {
+            text-align: center;
+        }
+
+        /* Target Label / Title */
+        .label {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            color: #666666;
+            margin-bottom: 2.5rem;
+            font-weight: 500;
+        }
+
+        /* Timer Display */
+        .timer {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+        }
+
+        .time-segment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Animation Container */
+        .number-container {
+            position: relative;
+            font-size: 5rem;
+            font-weight: 300;
+            height: 1em;
+            width: 1.5em;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .digit {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-variant-numeric: tabular-nums;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .digit.old {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        .digit.current {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .digit.new {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        .unit {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #444444;
+            font-weight: 600;
+        }
+
+        /* ==========================================
+           AUDIO PLAYER STYLES
+           ========================================== */
+        #post-launch-content {
+            display: none;
+            animation: fadeIn 1.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .audio-player {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.25rem 2rem;
+            border: 1px solid #222222;
+            border-radius: 50px; /* Pill shape */
+            background-color: #050505;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .play-btn {
+            background: transparent;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            padding-left: 3px; /* Centers the play triangle visually */
+        }
+
+        .play-btn.playing {
+            padding-left: 0; /* Resets padding for the pause bars */
+        }
+
+        .play-btn:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .track-info {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .track-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+
+        .track-artist {
+            font-size: 0.75rem;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        .track-time {
+            font-size: 0.85rem;
+            color: #555555;
+            font-variant-numeric: tabular-nums;
+            margin-left: 1rem;
+            border-left: 1px solid #333333;
+            padding-left: 1.5rem;
+        }
+
+        #current-time {
+            color: #ffffff;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .timer { gap: 1.5rem; }
+            .number-container { font-size: 3.5rem; }
+            .audio-player { flex-direction: column; border-radius: 12px; gap: 1rem; text-align: center; }
+            .track-info { text-align: center; }
+            .track-time { margin-left: 0; border-left: none; border-top: 1px solid #333; padding-left: 0; padding-top: 1rem; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="countdown-container">
+        <div class="label" id="title">Sketch for Strings</div>
+        
+        <div class="timer" id="countdown">
+            <div class="time-segment">
+                <div class="number-container" id="hours" data-val="00"><div class="digit current">00</div></div>
+                <span class="unit">Hours</span>
+            </div>
+            <div class="time-segment">
+                <div class="number-container" id="minutes" data-val="00"><div class="digit current">00</div></div>
+                <span class="unit">Mins</span>
+            </div>
+            <div class="time-segment">
+                <div class="number-container" id="seconds" data-val="00"><div class="digit current">00</div></div>
+                <span class="unit">Secs</span>
+            </div>
+        </div>
+
+        <div id="post-launch-content">
+            <div class="audio-player">
+                <button id="play-pause-btn" class="play-btn">&#9654;</button> <div class="track-info">
+                    <div class="track-title" id="display-title">Song Title Here</div>
+                    <div class="track-artist" id="display-artist">Artist Name</div>
+                </div>
+
+                <div class="track-time">
+                    <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <audio id="custom-audio" preload="metadata">
+                <source src="Wish.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION: COUNTDOWN & AUDIO
+        // ==========================================
+        const TARGET_DATE_STRING = "2026-06-12T23:59:59"; // Format: YYYY-MM-DDTHH:MM:SS
+        
+        // Change your track details here
+        const TRACK_TITLE = "Sketch for Strings";
+        const ARTIST_NAME = "Angel Ramirez-Paz";
+
+        // Inject the text into the HTML
+        document.getElementById("display-title").innerText = TRACK_TITLE;
+        document.getElementById("display-artist").innerText = ARTIST_NAME;
+
+        // ==========================================
+        // COUNTDOWN LOGIC
+        // ==========================================
+        const targetDate = new Date(TARGET_DATE_STRING).getTime();
+
+        function animateValue(id, newValue) {
+            const container = document.getElementById(id);
+            const currentValue = container.getAttribute('data-val');
+            if (currentValue === newValue) return;
+            
+            container.setAttribute('data-val', newValue);
+            const oldDigit = container.querySelector('.current');
+            
+            if (oldDigit) {
+                oldDigit.classList.remove('current');
+                oldDigit.classList.add('old');
+                setTimeout(() => { if (oldDigit.parentNode === container) container.removeChild(oldDigit); }, 500);
+            }
+
+            const newDigit = document.createElement('div');
+            newDigit.className = 'digit new current';
+            newDigit.innerText = newValue;
+            container.appendChild(newDigit);
+            void newDigit.offsetWidth;
+            newDigit.classList.remove('new');
+        }
+
+        function updateCountdown() {
+            const now = new Date().getTime();
